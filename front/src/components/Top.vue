@@ -16,10 +16,9 @@ export default {
       // TODO remove this
       console.log('start login twitter')
 
-      this.$axios.get('/login/twitter').then((response) => {
-        location.href = response.auth_url
+      this.$axios.post('/users/signin').then((response) => {
       }, (error) => {
-        alert(error)
+        console.log(error)
       })
     }
   }

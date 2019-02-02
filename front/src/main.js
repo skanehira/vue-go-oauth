@@ -9,7 +9,7 @@ Vue.config.productionTip = false
 
 // regist axios to Vue instance
 Vue.prototype.$axios = axios.create({
-  baseURL: 'http://localhost:8089',
+  baseURL: 'http://localhost:8080',
   headers: {
     'ContentType': 'application/json',
     'X-Requested-With': 'XMLHttpRequest'
