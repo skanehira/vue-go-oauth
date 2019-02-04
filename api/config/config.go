@@ -6,15 +6,23 @@ import (
 
 // Config config info
 type Config struct {
-	AppName string `default:"zmemo"`
+	AppName string `default:"test"`
 	Port    string `default:"8080"`
 	DBLog   bool
 	DB      struct {
-		Name     string `default:"pgw"`
-		User     string `default:"pgw"`
-		Password string `default:"pgw"`
+		Name     string `default:"test"`
+		User     string `default:"test"`
+		Password string `default:"test"`
 		Port     string `default:"3306"`
 		Host     string `default:"localhost"`
+	}
+	Twitter struct {
+		Token            string
+		Secret           string
+		RequestURI       string
+		AuthorizationURI string
+		TokenRequestURI  string
+		CallbackURI      string
 	}
 }
 
@@ -26,7 +34,7 @@ func New(file ...string) *Config {
 		file = append(file, "./config/config.yaml")
 	}
 
-	if err := configor.Load(config, file[0]); err != nil {
+	if err := configor.New(&configor.Config{Debug: false}).Load(config, file[0]); err != nil {
 		panic(err)
 	}
 

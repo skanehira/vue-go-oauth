@@ -5,23 +5,36 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/skanehira/pgw/api/common"
+	"github.com/skanehira/vue-go-oauth2/api/common"
 )
 
 // User user info
 type User struct {
-	ID                string     `gorm:"primary_key;not null" json:"id"`
-	Name              string     `gorm:"not null" json:"name"`
-	AccessToken       string     `gorm:"not null"`
-	AccessTokenSecret string     `gorm:"not null"`
-	CreatedAt         time.Time  `gorm:"null" json:"createAt"`
-	UpdatedAt         time.Time  `gorm:"null" json:"updateaAt"`
-	DeletedAt         *time.Time `gorm:"null" json:"-"`
+	ScreenName string     `gorm:"primary_key;not null" json:"screen_name"`
+	Name       string     `gorm:"not null" json:"name"`
+	URL        string     `gorm:"not null" json:"url"`
+	CreatedAt  time.Time  `gorm:"null" json:"createAt"`
+	UpdatedAt  time.Time  `gorm:"null" json:"updateaAt"`
+	DeletedAt  *time.Time `gorm:"null" json:"-"`
+}
+
+// SaveUser save user info
+func (m *Model) SaveUser(user User) error {
+	log.Println(user)
+
+	user.UpdatedAt = common.GetTime()
+	user.CreatedAt = common.GetTime()
+
+	if err := m.db.Save(&user).Error; err != nil {
+		log.Println("error: " + err.Error())
+		return err
+	}
+	return nil
 }
 
 // GetUser get user info
 func (m *Model) GetUser(id string) (User, error) {
-	user := User{ID: id}
+	user := User{ScreenName: id}
 
 	// get user info
 	if err := m.db.Find(&user).Error; err != nil {
@@ -40,7 +53,7 @@ func (m *Model) GetUser(id string) (User, error) {
 // UpdateUser update user info
 func (m *Model) UpdateUser(user User) (User, error) {
 	// if user no exist
-	oldUser, err := m.GetUser(user.ID)
+	oldUser, err := m.GetUser(user.ScreenName)
 	if err != nil {
 		return user, err
 	}
@@ -54,7 +67,7 @@ func (m *Model) UpdateUser(user User) (User, error) {
 		return user, err
 	}
 
-	newUser, err := m.GetUser(user.ID)
+	newUser, err := m.GetUser(user.ScreenName)
 	if err != nil {
 		return user, err
 	}

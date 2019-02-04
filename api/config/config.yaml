@@ -7,3 +7,10 @@ db:
     password: test
     port:     3306
     host:     127.0.0.1
+twitter:
+    token: ""
+    secret: ""
+    requesturi: "https://api.twitter.com/oauth/request_token"
+    authorizationuri: "https://api.twitter.com/oauth/authorize"
+    tokenrequesturi: "https://api.twitter.com/oauth/access_token"
+    callbackuri:  "http://localhost:8080/twitter/callback"

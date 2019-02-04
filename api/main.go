@@ -10,9 +10,9 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
-	"github.com/skanehira/pgw/api/config"
-	"github.com/skanehira/pgw/api/model"
-	"github.com/skanehira/pgw/api/server"
+	"github.com/skanehira/vue-go-oauth2/api/config"
+	"github.com/skanehira/vue-go-oauth2/api/model"
+	"github.com/skanehira/vue-go-oauth2/api/server"
 )
 
 func main() {

@@ -1,5 +1,6 @@
 <template>
   <div>
+    <h1>{{msg}}</h1>
     <button class="button" type="submit" @click="login">Login Twitter</button>
   </div>
 </template>
@@ -13,10 +14,8 @@ export default {
   },
   methods: {
     login () {
-      // TODO remove this
-      console.log('start login twitter')
-
       this.$axios.post('/users/signin').then((response) => {
+        location.href = response.data.URL
       }, (error) => {
         console.log(error)
       })
