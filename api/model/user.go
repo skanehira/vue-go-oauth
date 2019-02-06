@@ -10,23 +10,22 @@ import (
 
 // User user info
 type User struct {
-	ScreenName string     `gorm:"primary_key;not null" json:"screen_name"`
-	Name       string     `gorm:"not null" json:"name"`
-	URL        string     `gorm:"not null" json:"url"`
-	CreatedAt  time.Time  `gorm:"null" json:"createAt"`
-	UpdatedAt  time.Time  `gorm:"null" json:"updateaAt"`
-	DeletedAt  *time.Time `gorm:"null" json:"-"`
+	ID          string     `gorm:"primary_key;not null" json:"id_str"`
+	ScreenName  string     `gorm:"not null" json:"screen_name"`
+	Name        string     `gorm:"not null" json:"name"`
+	URL         string     `gorm:"not null" json:"url"`
+	Description string     `gorm:"null" json:"description"`
+	CreatedAt   time.Time  `gorm:"null" json:"create_at"`
+	UpdatedAt   time.Time  `gorm:"null" json:"update_at"`
+	DeletedAt   *time.Time `gorm:"null" json:"-"`
 }
 
 // SaveUser save user info
 func (m *Model) SaveUser(user User) error {
-	log.Println(user)
-
 	user.UpdatedAt = common.GetTime()
 	user.CreatedAt = common.GetTime()
 
 	if err := m.db.Save(&user).Error; err != nil {
-		log.Println("error: " + err.Error())
 		return err
 	}
 	return nil
@@ -39,8 +38,7 @@ func (m *Model) GetUser(id string) (User, error) {
 	// get user info
 	if err := m.db.Find(&user).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			log.Println("error: " + common.ErrNotFoundUser.Error())
-			return user, common.ErrNotFoundUser
+			return user, common.ErrNotFoundUserInfo
 		}
 
 		log.Println("error: " + err.Error())

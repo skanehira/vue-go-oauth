@@ -9,13 +9,21 @@
 export default {
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
+      msg: 'Gorilla Gorilla Gorilla Gorilla Gorilla Gorilla Gorilla'
     }
   },
   methods: {
     login () {
       this.$axios.post('/users/signin').then((response) => {
-        location.href = response.data.URL
+        switch (response.data.status) {
+          case 200:
+            location.href = response.data.url
+            break
+          case 302:
+            this.$router.push(response.data.url)
+            break
+          default:
+        }
       }, (error) => {
         console.log(error)
       })

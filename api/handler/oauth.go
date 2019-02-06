@@ -8,9 +8,7 @@ import (
 	"net/url"
 
 	"github.com/gomodule/oauth1/oauth"
-	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo-contrib/session"
 	"github.com/skanehira/vue-go-oauth2/api/common"
 	"github.com/skanehira/vue-go-oauth2/api/config"
 	"github.com/skanehira/vue-go-oauth2/api/model"
@@ -19,13 +17,9 @@ import (
 )
 
 const (
-	// twitter callback url
-	twitterCallBack = "http://localhost:8080/twitter/callback"
 	// session token key
 	tokenKey  = "tokenKey"
 	secretKey = "secretKey"
-	// session name
-	sessionName = "test_session"
 	// user info url
 	userInfoURI = "https://api.twitter.com/1.1/account/verify_credentials.json"
 	// twitter base uri
@@ -36,9 +30,16 @@ const (
 type OAuth struct {
 	client oauth.Client
 	db     *gorm.DB
+	config *config.Config
 }
 
-// NewOAuthHandler new oauth
+// Response singin response
+type Response struct {
+	Status int    `json:"status"`
+	URL    string `json:"url"`
+}
+
+// NewOAuthHandler new oauth handler
 func NewOAuthHandler(config *config.Config, db *gorm.DB) *OAuth {
 	// new oauth setting from cnofig.yaml
 	return &OAuth{
@@ -51,108 +52,110 @@ func NewOAuthHandler(config *config.Config, db *gorm.DB) *OAuth {
 				Secret: config.Twitter.Secret,
 			},
 		},
-		db: db,
+		db:     db,
+		config: config,
 	}
 }
 
-// Signin signin
+// Signin signin twitter
 func (o *OAuth) Signin() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		credentials, err := o.client.RequestTemporaryCredentials(nil, twitterCallBack, nil)
+		// get twitter access token
+		credentials, err := o.client.RequestTemporaryCredentials(nil, o.config.Twitter.CallbackURI, nil)
 		if err != nil {
-			err := fmt.Errorf("Error getting credentials, %s", err.Error())
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrGetCredentials, err))
 		}
-		sess, err := session.Get(sessionName, c)
+
+		// get session
+		sess, isSignined, err := newSession(c)
 		if err != nil {
-			err := fmt.Errorf("Error getting credentials, %s", err.Error())
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidSession, err))
 		}
 
-		sess.Options = &sessions.Options{
-			Path:     "/",
-			HttpOnly: true,
+		// if session is exsist return mypage
+		if isSignined {
+			return c.JSON(http.StatusOK, Response{http.StatusFound, "/mypage"})
 		}
 
-		sess.Values[tokenKey] = credentials.Token
-		sess.Values[secretKey] = credentials.Secret
-		if err := sess.Save(c.Request(), c.Response()); err != nil {
-			err := fmt.Errorf("Error saving session, %s", err.Error())
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+		// set session option
+		sess.Options.HttpOnly = true
+
+		// set request token value to session
+		setValuesToSession(sess, map[string]interface{}{
+			tokenKey:  credentials.Token,
+			secretKey: credentials.Secret,
+		})
+
+		// save session
+		if err := saveSession(c, sess); err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrNotFoundUserInfo, err))
 		}
 
-		return c.JSON(http.StatusOK, struct{ URL string }{o.client.AuthorizationURL(credentials, nil)})
+		// return twitter authp page url
+		return c.JSON(http.StatusOK, Response{http.StatusOK, o.client.AuthorizationURL(credentials, nil)})
 	}
 }
 
-// TwitterCallback twitter callback
+// TwitterCallback twitter callback endpoint
 func (o *OAuth) TwitterCallback() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// get credentials from session
-		sess, _ := session.Get(sessionName, c)
-
-		if sess.IsNew {
-			err := fmt.Errorf("%s", "Error invalid session.")
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+		// get session
+		sess, err := getSession(c)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidSession, err))
 		}
 
-		token, ok := sess.Values[tokenKey]
-		if !ok {
-			err := fmt.Errorf("%s", "Error getting token.")
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+		// get request token
+		credentials, err := getCredentialsFromSession(sess)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidCredentials, err))
 		}
 
-		secret, ok := sess.Values[secretKey]
-		if !ok {
-			err := fmt.Errorf("%s", "Error getting secret.")
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
-		}
-
-		credentials := &oauth.Credentials{
-			Token:  token.(string),
-			Secret: secret.(string),
-		}
-
-		// if credentials is nil and toeken is not equles
+		// if request token is not equles
 		if credentials.Token != c.QueryParam("oauth_token") {
-			err := fmt.Errorf("%s", "Unknown oauth_token.")
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidCredentials, err))
 		}
 
 		// get access token.
 		accessCredentials, _, err := o.client.RequestToken(nil, credentials, c.QueryParam("oauth_verifier"))
 
 		if err != nil {
-			err := fmt.Errorf("Error getting request token, %s", err)
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrGetCredentials, err))
 		}
 
-		// save access token to session
-		sess.Values[tokenKey] = accessCredentials.Token
-		sess.Values[secretKey] = accessCredentials.Secret
-
-		if err := sess.Save(c.Request(), c.Response()); err != nil {
-			err := fmt.Errorf("Error saving session, %s", err)
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
-		}
-
-		// get twitter account info to save db
-		user, err := o.GetAccountInfo(accessCredentials)
+		// get twitter account info
+		user, err := o.GetUserInfo(accessCredentials)
 		if err != nil {
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrNotFoundUserInfo, err))
 		}
 
+		// generate wtitter account url
 		user.URL = baseURI + user.ScreenName
 
-		if err := model.New(o.db).SaveUser(user); err != nil {
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+		// set access token value to session
+		setValuesToSession(sess, map[string]interface{}{
+			tokenKey:  credentials.Token,
+			secretKey: credentials.Secret,
+			"id":      user.ID,
+		})
+
+		// save access token to session
+		if err := saveSession(c, sess); err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrSaveSession, err))
 		}
 
-		return c.NoContent(http.StatusOK)
+		// save user info to db
+		if err := model.New(o.db).SaveUser(user); err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrSaveUserInfo, err))
+		}
+
+		// redirect mypage
+		return c.Redirect(http.StatusFound, "/#/mypage")
 	}
 }
 
-func (o OAuth) GetAccountInfo(credentials *oauth.Credentials) (model.User, error) {
+// GetUserInfo get twitter user info
+func (o OAuth) GetUserInfo(credentials *oauth.Credentials) (model.User, error) {
 	var user model.User
 
 	if err := o.APIGet(
@@ -167,6 +170,7 @@ func (o OAuth) GetAccountInfo(credentials *oauth.Credentials) (model.User, error
 	return user, nil
 }
 
+// APIGet call get twitter api
 func (o OAuth) APIGet(cred *oauth.Credentials, urlStr string, form url.Values, data interface{}) error {
 	resp, err := o.client.Get(nil, cred, urlStr, form)
 	if err != nil {

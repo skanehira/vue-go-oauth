@@ -19,32 +19,29 @@ func NewUserHandler(db *gorm.DB) *UserHandler {
 	return &UserHandler{model: model.New(db)}
 }
 
-// DeleteUser delete user info
-func (u *UserHandler) DeleteUser() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		userID := c.Param("userID")
-
-		// delete user
-		if err := u.model.DeleteUser(userID); err != nil {
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
-		}
-
-		return c.NoContent(http.StatusOK)
-	}
-}
-
 // GetUser get user info
 func (u *UserHandler) GetUser() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		userID := c.Param("userID")
-
-		// get user info
-		u, err := u.model.GetUser(userID)
-
+		// get session
+		sess, err := getSession(c)
 		if err != nil {
-			return c.JSON(common.GetErrorCode(err), common.NewError(err.Error()))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidSession, err))
 		}
 
-		return c.JSON(http.StatusOK, u)
+		// get user id from session
+		id, ok := sess.Values["id"]
+		if !ok {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrGetUserID, err))
+		}
+
+		// get user info with user id
+		user, err := u.model.GetUser(id.(string))
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrNotFoundUserInfo, err))
+		}
+
+		// return user info
+		return c.JSON(http.StatusOK, user)
 	}
 }

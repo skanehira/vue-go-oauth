@@ -1,7 +1,11 @@
 <template>
   <div>
     <h1>Mypage</h1>
-    <table border=1>
+    <table border=1 align="center" style="text-align:left">
+      <tr>
+        <th>ID</th>
+        <td>{{my.screen_name}}</td>
+      </tr>
       <tr>
         <th>Name</th>
         <td>{{my.name}}</td>
@@ -11,12 +15,8 @@
         <td>{{my.description}}</td>
       </tr>
       <tr>
-        <th>Location</th>
-        <td>{{my.location}}</td>
-      </tr>
-      <tr>
-        <th>ScreenName</th>
-        <td>{{my.screen_name}}</td>
+        <th>URL</th>
+        <td>{{my.url}}</td>
       </tr>
     </table>
   </div>

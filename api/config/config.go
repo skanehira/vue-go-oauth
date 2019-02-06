@@ -9,6 +9,7 @@ type Config struct {
 	AppName string `default:"test"`
 	Port    string `default:"8080"`
 	DBLog   bool
+	AppLog  bool
 	DB      struct {
 		Name     string `default:"test"`
 		User     string `default:"test"`

@@ -1,6 +1,7 @@
 appname: test
-port: 8080
-dblog: true
+port: 80
+dblog: false
+applog: false
 db:
     name:     test
     user:     test
@@ -13,4 +14,4 @@ twitter:
     requesturi: "https://api.twitter.com/oauth/request_token"
     authorizationuri: "https://api.twitter.com/oauth/authorize"
     tokenrequesturi: "https://api.twitter.com/oauth/access_token"
-    callbackuri:  "http://localhost:8080/twitter/callback"
+    callbackuri:  "http://localhost/twitter/callback"
