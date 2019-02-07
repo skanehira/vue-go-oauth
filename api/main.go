@@ -52,7 +52,7 @@ func main() {
 	})
 	colog.Register()
 
-	// ログの設定方法
+	// how setting log
 	// log.Printf("trace: this is a trace log.")
 	// log.Printf("debug: this is a debug log.")
 	// log.Printf("info: this is an info log.")

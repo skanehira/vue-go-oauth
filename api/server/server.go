@@ -53,5 +53,6 @@ func (s *Server) InitHandler() {
 
 	s.e.GET("/users", user.GetUser())
 	s.e.POST("/users/signin", oauth.Signin())
+	s.e.POST("/users/signout", oauth.Singout())
 	s.e.GET("/twitter/callback", oauth.TwitterCallback())
 }

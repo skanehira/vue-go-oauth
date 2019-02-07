@@ -31,7 +31,7 @@ func (u *UserHandler) GetUser() echo.HandlerFunc {
 		// get user id from session
 		id, ok := sess.Values["id"]
 		if !ok {
-			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrGetUserID, err))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrGetUserID, nil))
 		}
 
 		// get user info with user id

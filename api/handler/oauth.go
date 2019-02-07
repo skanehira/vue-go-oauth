@@ -57,6 +57,27 @@ func NewOAuthHandler(config *config.Config, db *gorm.DB) *OAuth {
 	}
 }
 
+// Singout singout
+func (o *OAuth) Singout() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// get session
+		session, err := getSession(c)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidSession, err))
+		}
+
+		// set cookie maxage -1 to remove session
+		session.Options.MaxAge = -1
+
+		if err := saveSession(c, session); err != nil {
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrSaveSession, err))
+		}
+
+		// return signed flag
+		return c.JSON(http.StatusOK, map[string]bool{"is_signed_in": false})
+	}
+}
+
 // Signin signin twitter
 func (o *OAuth) Signin() echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -113,7 +134,7 @@ func (o *OAuth) TwitterCallback() echo.HandlerFunc {
 
 		// if request token is not equles
 		if credentials.Token != c.QueryParam("oauth_token") {
-			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidCredentials, err))
+			return c.JSON(http.StatusInternalServerError, common.NewError(common.ErrInvalidCredentials, nil))
 		}
 
 		// get access token.
@@ -131,6 +152,8 @@ func (o *OAuth) TwitterCallback() echo.HandlerFunc {
 
 		// generate wtitter account url
 		user.URL = baseURI + user.ScreenName
+		// set signed flalg
+		user.IsSignedIn = true
 
 		// set access token value to session
 		setValuesToSession(sess, map[string]interface{}{

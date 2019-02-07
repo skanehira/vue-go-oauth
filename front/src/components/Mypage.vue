@@ -26,13 +26,14 @@
 export default {
   data () {
     return {
-      my: null
+      my: {
+        screen_name: ''
+      }
     }
   },
   methods: {
-    getUserInfo () {
-      this.$axios.get('/users').then((response) => {
-        console.log(response)
+    async getUserInfo () {
+      await this.$axios.get('/users').then((response) => {
         this.my = response.data
       }, (error) => {
         console.log(error)

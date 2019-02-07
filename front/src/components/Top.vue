@@ -1,7 +1,12 @@
 <template>
   <div>
     <h1>{{msg}}</h1>
-    <button class="button" type="submit" @click="login">Login Twitter</button>
+    <div v-if="is_signed_in">
+      <button class="button" type="submit" @click="singout">Sign Out</button>
+    </div>
+    <div v-else>
+      <button class="button" type="submit" @click="singin">Sign In</button>
+    </div>
   </div>
 </template>
 
@@ -9,11 +14,12 @@
 export default {
   data () {
     return {
-      msg: 'Gorilla Gorilla Gorilla Gorilla Gorilla Gorilla Gorilla'
+      msg: 'Gorilla Gorilla Gorilla Gorilla Gorilla Gorilla Gorilla',
+      is_signed_in: false
     }
   },
   methods: {
-    login () {
+    singin () {
       this.$axios.post('/users/signin').then((response) => {
         switch (response.data.status) {
           case 200:
@@ -25,8 +31,23 @@ export default {
           default:
         }
       }, (error) => {
-        console.log(error)
+        alert(error)
       })
+    },
+    singout () {
+      this.$axios.post('/users/signout').then((response) => {
+        this.is_signed_in = response.data.is_signed_in
+      }, (error) => {
+        alert(error)
+      })
+    }
+  },
+  mounted () {
+    let session = this.$cookie.get('test_session')
+    if (session != null) {
+      this.is_signed_in = true
+    } else {
+      this.is_signed_in = false
     }
   }
 }

@@ -28,5 +28,8 @@ type ErrorMessage struct {
 
 // NewError make new error
 func NewError(err error, cause error) ErrorMessage {
-	return ErrorMessage{errors.Wrap(err, cause.Error()).Error()}
+	if cause != nil {
+		return ErrorMessage{errors.Wrap(err, cause.Error()).Error()}
+	}
+	return ErrorMessage{errors.Wrap(err, "").Error()}
 }
